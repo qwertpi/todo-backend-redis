@@ -5,7 +5,7 @@ import org.http4s.HttpRoutes
 import org.http4s.Status
 import org.http4s.dsl.io._
 import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.server.middleware.Logger
+import org.http4s.server.middleware.{CORS, Logger}
 
 object Logic:
 	def sayHello(name: String): String = "Hi there " + name
@@ -17,8 +17,9 @@ object Routes:
 	}
 
 object Main extends IOApp.Simple:
-	// This is where we will put CORS
-	val httpApp = Logger.httpApp(true, true)(Routes.routes.orNotFound)
+	val httpApp = CORS.policy.withAllowOriginAll(
+		Logger.httpApp(true, true)(
+			Routes.routes.orNotFound))
 
 	val server = for {
 		_ <-
