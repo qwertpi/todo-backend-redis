@@ -12,6 +12,7 @@ object Logic:
 
 object Routes:
 	val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+		case GET -> Root => Status.Ok("Site is running :)")
 		case GET -> Root / "hello" / name => Status.Ok(Logic.sayHello(name))
 	}
 
@@ -22,7 +23,7 @@ object Main extends IOApp.Simple:
 	val server = for {
 		_ <-
 			EmberServerBuilder.default[IO]
-				.withHost(ipv4"0.0.0.0")
+				.withHost(ipv4"127.0.0.1")
 				.withPort(port"8080")
 				.withHttpApp(httpApp)
 				.build

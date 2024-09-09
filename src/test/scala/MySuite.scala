@@ -1,7 +1,11 @@
+import sttp.client3.{SimpleHttpClient, UriContext, basicRequest}
+
 class MySuite extends munit.FunSuite {
-  test("example test that succeeds") {
-    val obtained = 42
-    val expected = 42
-    assertEquals(obtained, expected)
-  }
+	val path = "http://localhost:8080"
+	test("root works") {
+		val client = SimpleHttpClient()
+		val response = client.send(basicRequest.get(uri"$path"))
+		assert(response.code.isSuccess)
+		assert(response.body.contains("Site is running :)"))
+	}
 }
