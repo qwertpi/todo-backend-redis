@@ -15,10 +15,11 @@ along with this program.  If you have not received this, see <http://www.gnu.org
 For a (non-legally binding) summary of the license see https://tldrlegal.com/license/gnu-general-public-license-v3-(gpl-3)
 
 ## Installation
-1. `apt-get install redis`
-2. `redis-cli CONFIG SET appendonly yes appendfsync everysec save ""`
-3. `redis-cli CONFIG REWRITE`
-WIP
+1. Install scala and sbt using [coursier](https://get-coursier.io/docs/cli-installation)
+2. `apt-get install redis`
+3. `redis-cli CONFIG SET appendonly yes appendfsync everysec save ""`
+4. `redis-cli CONFIG REWRITE`
+
 
 ## Usage
 TO DO
