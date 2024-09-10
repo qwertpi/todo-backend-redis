@@ -5,9 +5,7 @@ import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{CORS, Logger}
 
 object Main extends IOApp.Simple:
-	val httpApp = CORS.policy.withAllowOriginAll(
-		Logger.httpApp(true, true)(
-			Routes.routes.orNotFound))
+	val httpApp = CORS.policy.withAllowOriginAll(Routes.routes.orNotFound)
 
 	val server = for {
 		_ <-
