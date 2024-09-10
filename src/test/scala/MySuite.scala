@@ -1,17 +1,22 @@
+import munit.Assertions._
+
 import sttp.client3.{SimpleHttpClient, UriContext, basicRequest}
+import sttp.client3.Response
 
-class MySuite extends munit.FunSuite {
+def assertResponseBodyIs[W, T](response: Response[Either[W, T]], target: T) =
+	response.body match
+		case Left(_)    => fail(s"Received HTTP error ${response.code}")
+		case Right(body) => assertEquals(body, target)
+
+class MySuite extends munit.FunSuite:
 	val root = "http://localhost:8080"
-	test("server is up") {
-		val client = SimpleHttpClient()
-		val response = client.send(basicRequest.get(uri"$root"))
-		assert(response.code.isSuccess)
-	}
+	val client = SimpleHttpClient()
 
-	test("redis is up") {
-		val client = SimpleHttpClient()
+	test("server is up"):
+		val response = client.send(basicRequest.get(uri"$root"))
+		assert(response.isSuccess)
+
+	test("redis is up"):
 		val response = client.send(basicRequest.get(uri"$root/ping"))
-		assert(response.code.isSuccess)
-		assert(response.body.contains("PONG"))
-	}
-}
+		assertResponseBodyIs(response, "PONG")
+
