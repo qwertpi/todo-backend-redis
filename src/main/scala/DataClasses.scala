@@ -1,0 +1,1 @@
+case class ToDo(uid: Int, title: String, completed: Boolean)
