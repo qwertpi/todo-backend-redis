@@ -21,8 +21,12 @@ class MySuite extends munit.FunSuite:
 		assertResponseBodyIs(response, "PONG")
 
 	test("post gives added"):
-		val postResponse = client.send(basicRequest.post(uri"$root"))
-		assertResponseBodyIs(postResponse, ???)
+		val postResponse1 = client.send(basicRequest.post(uri"$root").body("{\"title\": \"Foo\"}"))
+		assertResponseBodyIs(postResponse1, "{\"title\":\"Foo\"}")
+		val postResponse2 = client.send(basicRequest.post(uri"$root").body("{\"title\": \"Bar\"}"))
+		assertResponseBodyIs(postResponse2, "{\"title\":\"Bar\"}")
+		val getResponse = client.send(basicRequest.get(uri"$root"))
+		assertResponseBodyIs(getResponse, "[{\"uid\":1,\"title\":\"Foo\",\"completed\":false},{\"uid\":2,\"title\":\"Bar\",\"completed\":false}]")
 
 	test("delete and get gives empty"):
 		val delResponse = client.send(basicRequest.delete(uri"$root"))

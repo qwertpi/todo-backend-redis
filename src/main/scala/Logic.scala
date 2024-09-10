@@ -5,13 +5,16 @@ import redis.clients.jedis.Jedis
 
 object Logic:
 	val jedis = Jedis()
-	var database = List(ToDo(1, "Foo", false), ToDo(2, "bar", true))
+	var nextUid = 1
+	var database: List[ToDo] = List()
 
 	def redisPing(msg: String): String = msg match
 		case "" => jedis.ping()
 		case  _ => jedis.ping(msg)
 
-	def addToDo(todo: Json): Unit = ???
+	def addToDo(todo: NewToDo): Unit =
+		database = database ++ List(todo.create(nextUid))
+		nextUid += 1
 
 	def getAllToDos(): Json = database.asJson
 
