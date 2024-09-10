@@ -20,6 +20,10 @@ class MySuite extends munit.FunSuite:
 		val response = client.send(basicRequest.get(uri"$root/ping"))
 		assertResponseBodyIs(response, "PONG")
 
+	test("post gives added"):
+		val postResponse = client.send(basicRequest.post(uri"$root"))
+		assertResponseBodyIs(postResponse, ???)
+
 	test("delete and get gives empty"):
 		val delResponse = client.send(basicRequest.delete(uri"$root"))
 		assert(delResponse.code.isSuccess)

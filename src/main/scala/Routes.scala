@@ -5,8 +5,9 @@ import org.http4s.dsl.io._
 
 object Routes:
 	val routes = HttpRoutes.of[IO] {
-		case GET -> Root => Status.Ok(Logic.getAllToDos())
 		case DELETE -> Root => Status.Ok(Logic.delAllToDos())
 		case GET -> Root / "ping" => Status.Ok(Logic.redisPing(""))
+		case PUT -> Root => Status.Ok(Logic.addToDo())
+		case GET -> Root => Status.Ok(Logic.getAllToDos())
 		case GET -> Root / "ping" / msg   => Status.Ok(Logic.redisPing(msg))
 	}

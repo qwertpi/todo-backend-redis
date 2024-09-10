@@ -7,6 +7,8 @@ object Logic:
 		case "" => jedis.ping()
 		case  _ => jedis.ping(msg)
 
+	def addToDo(): Unit = ???
+
 	def getAllToDos(): String = ???
 
 	def delAllToDos(): Unit = ???
