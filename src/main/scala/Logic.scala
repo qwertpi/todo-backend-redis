@@ -27,6 +27,9 @@ object Logic:
         list.map(_.toToDo()).asJson
 
     def delAllToDos(): Unit =
-        jedis.del(jedis.smembers("uids").asScala.map("todos:" + _).toSeq*)
-        jedis.del("uids")
-        jedis.del("next-uid")
+        val to_delete: Seq[String] = jedis
+            .smembers("uids")
+            .asScala
+            .map("todos:" + _)
+            .toSeq :+ "uids" :+ "next-uid"
+        jedis.del(to_delete*)
