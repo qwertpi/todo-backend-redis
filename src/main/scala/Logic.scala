@@ -17,14 +17,18 @@ object Logic:
         val ret        = jedis.sadd("uids", uid.toString())
         if ret != 1 then
             throw RuntimeException("Redis error: UID already exists")
-        jedis.hset(s"todos:$uid", todo.toRedisHash().asJava)
+        jedis.hset(s"todos:$uid", todo.toRedisToDo.toMap.asJava)
         todo.asJson
 
     def getAllToDos(): Json =
         val list =
             for uid <- jedis.smembers("uids").asScala
-            yield jedis.hgetAll(s"todos:$uid").asScala.toMap + ("uid" -> uid)
-        list.map(_.toToDo()).asJson
+            yield jedis
+                .hgetAll(s"todos:$uid")
+                .asScala
+                .toMap + ("uid" -> uid) + ("url" -> s"/$uid")
+        list.map(h => RedisToDo(h("uid"), h("title"), h("completed")).toAPIToDo)
+            .asJson
 
     def delAllToDos(): Unit =
         val to_delete: Seq[String] = jedis
