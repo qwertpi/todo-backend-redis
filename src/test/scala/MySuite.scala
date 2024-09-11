@@ -86,7 +86,7 @@ class MySuite extends munit.FunSuite:
                             assertEquals(toDoAtRoot, toDoOnOwn),
                 )
 
-    test("can patch title and completedness"):
+    test("can update title and completedness"):
         val postResponse = getBody(
             client.send(
                 basicRequest
@@ -121,6 +121,72 @@ class MySuite extends munit.FunSuite:
                 assert(
                     l.map(t => (t.title, t.completed))
                         .contains(("Not important", true)))
+
+    test("can update order"):
+        val postResponse = getBody(
+            client.send(
+                basicRequest
+                    .post(uri"${Constants.root}")
+                    .body("{\"title\": \"Bar\", \"order\": -10}")))
+        val todo         = decode[APIToDo](postResponse) match
+            case Left(err)   => fail(err.toString())
+            case Right(todo) => assertEquals(todo.order, Some(-10))
+
+    test("can update order from null"):
+        val postResponse = getBody(
+            client.send(
+                basicRequest
+                    .post(uri"${Constants.root}")
+                    .body("{\"title\": \"Foo\"}")))
+        val url          = decode[APIToDo](postResponse) match
+            case Left(err)   => fail(err.toString())
+            case Right(todo) =>
+                assertEquals(todo.order, None)
+                toNativeUri(todo.url)
+
+        val patchResponse = getBody(
+            client.send(
+                basicRequest
+                    .patch(url)
+                    .body("{\"order\": 10}")))
+        decode[APIToDo](patchResponse) match
+            case Left(err)   => fail(err.toString())
+            case Right(todo) =>
+                assertEquals(todo.order, Some(10))
+
+        val getResponse = getBody(client.send(basicRequest.get(url)))
+        decode[APIToDo](getResponse) match
+            case Left(err)   => fail(err.toString())
+            case Right(todo) =>
+                assertEquals(todo.order, Some(10))
+
+    test("can update order from value"):
+        val postResponse = getBody(
+            client.send(
+                basicRequest
+                    .post(uri"${Constants.root}")
+                    .body("{\"title\": \"Bar\", \"order\": 21}")))
+        val url          = decode[APIToDo](postResponse) match
+            case Left(err)   => fail(err.toString())
+            case Right(todo) =>
+                assertEquals(todo.order, Some(21))
+                toNativeUri(todo.url)
+
+        val patchResponse = getBody(
+            client.send(
+                basicRequest
+                    .patch(url)
+                    .body("{\"order\": 0}")))
+        decode[APIToDo](patchResponse) match
+            case Left(err)   => fail(err.toString())
+            case Right(todo) =>
+                assertEquals(todo.order, Some(0))
+
+        val getResponse = getBody(client.send(basicRequest.get(url)))
+        decode[APIToDo](getResponse) match
+            case Left(err)   => fail(err.toString())
+            case Right(todo) =>
+                assertEquals(todo.order, Some(0))
 
     test("delete all works"):
         deleteAndGetTest()

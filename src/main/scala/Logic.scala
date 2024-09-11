@@ -26,7 +26,7 @@ class Logic(val db: Int):
 
     private def getToDoFromRedis(uid: String): RedisToDo =
         val map = jedis.hgetAll(s"todos:$uid").asScala.toMap
-        RedisToDo(uid, map("title"), map("completed"))
+        RedisToDo(uid, map("title"), map("order"), map("completed"))
 
     def getToDo(uid: String): Json =
         getToDoFromRedis(uid).toAPIToDo.asJson
