@@ -4,8 +4,9 @@ import io.circe.syntax.*
 import redis.clients.jedis.Jedis
 import scala.jdk.CollectionConverters.*
 
-object Logic:
+class Logic(val db: Int):
     val jedis = Jedis()
+    jedis.select(db)
 
     def redisPing(msg: String): String = msg match
         case "" => jedis.ping()

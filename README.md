@@ -20,7 +20,6 @@ For a (non-legally binding) summary of the license see https://tldrlegal.com/lic
 3. `redis-cli CONFIG SET appendonly yes appendfsync everysec save ""`
 4. `redis-cli CONFIG REWRITE`
 
-
 ## Usage
+* To run tests (start server in a seperate tab with `sbt "run --test"`): `sbt test`
 * To run server: `sbt run`
-* To run tests (server must be running first): `sbt test`

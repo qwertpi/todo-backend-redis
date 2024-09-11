@@ -10,15 +10,18 @@ import org.http4s.headers.Location
 import org.http4s.implicits.uri
 
 object Routes:
-    val routes = HttpRoutes.of[IO] {
-        case DELETE -> Root         => Status.Ok(Logic.delAllToDos())
-        case request @ POST -> Root =>
-            for
-                todo <- request.as[NewToDo]
-                resp <- Ok(Logic.addToDo(todo))
-            yield resp
-        case GET -> Root            => Ok(Logic.getAllToDos())
-        case GET -> Root / "ping"   => PermanentRedirect(Location(uri"/ping/"))
-        case GET -> Root / "ping" / msg => Ok(Logic.redisPing(msg))
-        case GET -> Root / uid          => Ok(Logic.getToDo(uid))
-    }
+    def routes(db: Int) =
+        val logic = Logic(db)
+        HttpRoutes.of[IO] {
+            case DELETE -> Root             => Status.Ok(logic.delAllToDos())
+            case request @ POST -> Root     =>
+                for
+                    todo <- request.as[NewToDo]
+                    resp <- Ok(logic.addToDo(todo))
+                yield resp
+            case GET -> Root                => Ok(logic.getAllToDos())
+            case GET -> Root / "ping"       =>
+                PermanentRedirect(Location(uri"/ping/"))
+            case GET -> Root / "ping" / msg => Ok(logic.redisPing(msg))
+            case GET -> Root / uid          => Ok(logic.getToDo(uid))
+        }
