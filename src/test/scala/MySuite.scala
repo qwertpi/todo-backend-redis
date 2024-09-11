@@ -19,6 +19,12 @@ class MySuite extends munit.FunSuite:
     val root   = "http://localhost:8080"
     val client = SimpleHttpClient()
 
+    def deleteAndGetTest() =
+        val delResponse = client.send(basicRequest.delete(uri"$root"))
+        assert(delResponse.code.isSuccess)
+        val getResponse = client.send(basicRequest.get(uri"$root"))
+        assertResponseBodyIs(getResponse, "[]")
+
     test("server is up"):
         val response = client.send(basicRequest.get(uri"$root"))
         assert(response.isSuccess)
@@ -27,7 +33,10 @@ class MySuite extends munit.FunSuite:
         val response = client.send(basicRequest.get(uri"$root/ping"))
         assertResponseBodyIs(response, "PONG")
 
-    test("post gives added"):
+    test("data cleared successfully"):
+        deleteAndGetTest()
+
+    test("adding a new todo works"):
         val postResponse1Body = getBody(
             client.send(
                 basicRequest.post(uri"$root").body("{\"title\": \"Foo\"}")))
@@ -58,8 +67,8 @@ class MySuite extends munit.FunSuite:
                 assertEquals(l(1).completed, false)
                 assertEquals(l(1).uid - l(0).uid, 1L)
 
-    test("delete and get gives empty"):
-        val delResponse = client.send(basicRequest.delete(uri"$root"))
-        assert(delResponse.code.isSuccess)
-        val getResponse = client.send(basicRequest.get(uri"$root"))
-        assertResponseBodyIs(getResponse, "[]")
+    test("delete all works"):
+        deleteAndGetTest()
+
+    test("double delete works"):
+        deleteAndGetTest()
