@@ -12,6 +12,7 @@ libraryDependencies ++= Seq(
     "ch.qos.logback"                 % "logback-classic"     % logbackVersion,
     "com.softwaremill.sttp.client3" %% "core"                % sttpVersion,
     "io.circe"                      %% "circe-generic"       % circeVersion,
+    "io.circe"                      %% "circe-parser"        % circeVersion,
     "org.http4s"                    %% "http4s-circe"        % http4sVersion,
     "org.http4s"                    %% "http4s-ember-server" % http4sVersion,
     "org.http4s"                    %% "http4s-dsl"          % http4sVersion,

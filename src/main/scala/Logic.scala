@@ -12,9 +12,11 @@ object Logic:
         case "" => jedis.ping()
         case _  => jedis.ping(msg)
 
-    def addToDo(todo: NewToDo): Unit =
-        database = database ++ List(todo.create(nextUid))
+    def addToDo(newTodo: NewToDo): Json =
+        val todo: ToDo = newTodo.toToDo(nextUid)
+        database = database ++ List(todo)
         nextUid += 1
+        todo.asJson
 
     def getAllToDos(): Json = database.asJson
 

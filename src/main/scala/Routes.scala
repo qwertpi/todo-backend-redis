@@ -15,8 +15,7 @@ object Routes:
         case request @ POST -> Root =>
             for
                 todo <- request.as[NewToDo]
-                _     = Logic.addToDo(todo)
-                resp <- Ok(todo.asJson)
+                resp <- Ok(Logic.addToDo(todo))
             yield resp
         case GET -> Root            => Ok(Logic.getAllToDos())
         case GET -> Root / "ping"   => PermanentRedirect(Location(uri"/ping/"))
