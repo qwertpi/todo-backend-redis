@@ -20,15 +20,18 @@ object Logic:
         jedis.hset(s"todos:$uid", todo.toRedisToDo.toMap.asJava)
         todo.asJson
 
+    private def getToDoFromRedis(uid: String): RedisToDo =
+        val map = jedis
+            .hgetAll(s"todos:$uid")
+            .asScala
+            .toMap + ("uid" -> uid) + ("url" -> s"/$uid")
+        RedisToDo(map("uid"), map("title"), map("completed"))
+
+    def getToDo(uid: String): Json =
+        getToDoFromRedis(uid).toAPIToDo.asJson
+
     def getAllToDos(): Json =
-        val list =
-            for uid <- jedis.smembers("uids").asScala
-            yield jedis
-                .hgetAll(s"todos:$uid")
-                .asScala
-                .toMap + ("uid" -> uid) + ("url" -> s"/$uid")
-        list.map(h => RedisToDo(h("uid"), h("title"), h("completed")).toAPIToDo)
-            .asJson
+        jedis.smembers("uids").asScala.map(getToDoFromRedis(_).toAPIToDo).asJson
 
     def delAllToDos(): Unit =
         val to_delete: Seq[String] = jedis
