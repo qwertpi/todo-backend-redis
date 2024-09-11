@@ -18,17 +18,15 @@ object Logic:
         if ret != 1 then
             throw RuntimeException("Redis error: UID already exists")
         jedis.hset(s"todos:$uid", todo.toRedisToDo.toMap.asJava)
-        todo.asJson
+        getToDo(uid)
 
     private def getToDoFromRedis(uid: String): RedisToDo =
-        val map = jedis
-            .hgetAll(s"todos:$uid")
-            .asScala
-            .toMap + ("uid" -> uid) + ("url" -> s"/$uid")
-        RedisToDo(map("uid"), map("title"), map("completed"))
+        val map = jedis.hgetAll(s"todos:$uid").asScala.toMap
+        RedisToDo(uid, map("title"), map("completed"))
 
     def getToDo(uid: String): Json =
         getToDoFromRedis(uid).toAPIToDo.asJson
+    def getToDo(uid: Long): Json   = getToDo(uid.toString())
 
     def getAllToDos(): Json =
         jedis.smembers("uids").asScala.map(getToDoFromRedis(_).toAPIToDo).asJson

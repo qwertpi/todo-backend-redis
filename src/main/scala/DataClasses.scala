@@ -1,3 +1,6 @@
+import org.http4s.implicits.uri
+import org.http4s.Uri
+
 case class NewToDo(title: String)
 case class ToDo(uid: Long, title: String, completed: Boolean)
 case class RedisToDo(uid: String, title: String, completed: String)
@@ -21,4 +24,4 @@ extension (redisToDo: RedisToDo)
         redisToDo.uid.toLong,
         redisToDo.title,
         redisToDo.completed.toBoolean,
-        s"/${redisToDo.uid}")
+        s"${Constants.root}/${redisToDo.uid}")

@@ -20,4 +20,5 @@ object Routes:
         case GET -> Root            => Ok(Logic.getAllToDos())
         case GET -> Root / "ping"   => PermanentRedirect(Location(uri"/ping/"))
         case GET -> Root / "ping" / msg => Ok(Logic.redisPing(msg))
+        case GET -> Root / uid          => Ok(Logic.getToDo(uid))
     }

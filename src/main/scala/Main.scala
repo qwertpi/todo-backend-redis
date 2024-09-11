@@ -1,5 +1,5 @@
 import cats.effect.{IO, IOApp}
-import com.comcast.ip4s.{ipv4, port}
+import com.comcast.ip4s.{Hostname, Port}
 import fs2.io.net.Network
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.Request
@@ -23,8 +23,8 @@ object Main extends IOApp.Simple:
         _ <-
             EmberServerBuilder
                 .default[IO]
-                .withHost(ipv4"127.0.0.1")
-                .withPort(port"8080")
+                .withHost(Hostname.fromString(Constants.host).get)
+                .withPort(Port.fromInt(Constants.port).get)
                 .withHttpApp(httpApp)
                 .build
     } yield ()
