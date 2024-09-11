@@ -31,7 +31,11 @@ class Logic(val db: Int):
     def getToDo(uid: String): Json =
         getToDoFromRedis(uid).toAPIToDo.asJson
 
-    def getToDo(uid: Long): Json = getToDo(uid.toString())
+    def updateToDo(uid: String, patch: Map[String, Json]): Json =
+        jedis.hset(
+            s"todos:$uid",
+            patch.map((k, v) => k -> v.toStringRobust).asJava)
+        getToDo(uid)
 
     def getAllToDos(): Json =
         jedis.smembers("uids").asScala.map(getToDoFromRedis(_).toAPIToDo).asJson

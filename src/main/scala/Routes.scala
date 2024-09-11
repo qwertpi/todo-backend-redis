@@ -8,20 +8,27 @@ import org.http4s.circe.CirceEntityDecoder.circeEntityDecoder
 import org.http4s.dsl.io.*
 import org.http4s.headers.Location
 import org.http4s.implicits.uri
+import io.circe.Json
 
 object Routes:
     def routes(db: Int) =
         val logic = Logic(db)
         HttpRoutes.of[IO] {
-            case DELETE -> Root             => Status.Ok(logic.delAllToDos())
-            case request @ POST -> Root     =>
+            case DELETE -> Root                => Status.Ok(logic.delAllToDos())
+            case request @ POST -> Root        =>
                 for
                     todo <- request.as[NewToDo]
                     resp <- Ok(logic.addToDo(todo))
                 yield resp
-            case GET -> Root                => Ok(logic.getAllToDos())
-            case GET -> Root / "ping"       =>
+            case GET -> Root                   => Ok(logic.getAllToDos())
+            case GET -> Root / "ping"          =>
                 PermanentRedirect(Location(uri"/ping/"))
-            case GET -> Root / "ping" / msg => Ok(logic.redisPing(msg))
-            case GET -> Root / uid          => Ok(logic.getToDo(uid))
+            case GET -> Root / "ping" / msg    => Ok(logic.redisPing(msg))
+            case GET -> Root / uid             => Ok(logic.getToDo(uid))
+            case request @ PATCH -> Root / uid =>
+                for
+                    // Json is the equivalent of Any for circe
+                    patch <- request.as[Map[String, Json]]
+                    resp  <- Ok(logic.updateToDo(uid, patch))
+                yield resp
         }
