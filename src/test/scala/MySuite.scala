@@ -47,15 +47,7 @@ class MySuite extends munit.FunSuite:
                 assertEquals(todo.title, "Foo")
                 assertEquals(todo.completed, false)
 
-        val postResponse2Body = getBody(
-            client.send(
-                basicRequest.post(uri"$root").body("{\"title\": \"Bar\"}")))
-
-        decode[ToDo](postResponse2Body) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) =>
-                assertEquals(todo.title, "Bar")
-                assertEquals(todo.completed, false)
+        client.send(basicRequest.post(uri"$root").body("{\"title\": \"Bar\"}"))
 
         val getResponseBody = getBody(client.send(basicRequest.get(uri"$root")))
         decode[List[ToDo]](getResponseBody) match
@@ -66,6 +58,22 @@ class MySuite extends munit.FunSuite:
                 assertEquals(l(1).title, "Bar")
                 assertEquals(l(1).completed, false)
                 assertEquals(l(1).uid - l(0).uid, 1L)
+
+    test("can navigate to a single todo"):
+        val getRootResponseBody =
+            getBody(client.send(basicRequest.get(uri"$root")))
+        decode[List[APIToDo]](getRootResponseBody) match
+            case Left(outerErr) => fail(outerErr.toString())
+            case Right(l)       =>
+                l.foreach(toDoAtRoot =>
+                    val url                 = root + toDoAtRoot.url
+                    val getToDoResponseBody =
+                        getBody(client.send(basicRequest.get(uri"$url")))
+                    decode[APIToDo](getToDoResponseBody) match
+                        case Left(innerErr)   => fail(innerErr.toString())
+                        case Right(toDoOnOwn) =>
+                            assertEquals(toDoAtRoot, toDoOnOwn),
+                )
 
     test("delete all works"):
         deleteAndGetTest()
