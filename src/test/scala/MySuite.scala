@@ -56,7 +56,7 @@ class MySuite extends munit.FunSuite:
                 assertEquals(l(0).completed, false)
                 assertEquals(l(1).title, "Bar")
                 assertEquals(l(1).completed, false)
-                assertEquals(l(1).uid - l(0).uid, 1)
+                assertEquals(l(1).uid - l(0).uid, 1L)
 
     test("delete and get gives empty"):
         val delResponse = client.send(basicRequest.delete(uri"$root"))
