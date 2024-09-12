@@ -203,6 +203,10 @@ class MySuite extends munit.FunSuite:
         val getResponse = client.send(basicRequest.get(url))
         assertEquals(getResponse.code.code, 404)
 
+        val getResponseAtRoot =
+            client.send(basicRequest.get(uri"${Constants.root}"))
+        assert(getResponseAtRoot.isSuccess)
+
     test("delete all works"):
         deleteAndGetTest()
 
