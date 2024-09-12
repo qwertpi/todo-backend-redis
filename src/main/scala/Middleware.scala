@@ -1,8 +1,9 @@
+import annotation.tailrec
 import java.util.UUID.randomUUID
 import io.circe.Json
-import io.circe.generic.auto.*
-import io.circe.syntax.*
-import org.http4s.circe.*
+import io.circe.generic.auto.deriveEncoder
+import io.circe.syntax.EncoderOps
+import org.http4s.circe.{encodeUri, jsonEncoder}
 import org.http4s.Response
 import org.http4s.dsl.io.*
 import redis.clients.jedis.{Jedis, JedisPool}
@@ -19,13 +20,13 @@ class Middleware(jedisPool: JedisPool, db: Int):
         jedis.close()
         ret
 
-    def redisPing(msg: String): HTTPResponse = Ok(
+    def redisPing(msg: Option[String]): HTTPResponse = Ok(
         msg match
-            case "" => useJedis(jedis => jedis.ping())
-            case _  => useJedis(jedis => jedis.ping(msg)),
+            case None      => useJedis(jedis => jedis.ping())
+            case Some(msg) => useJedis(jedis => jedis.ping(msg)),
     )
 
-    @annotation.tailrec
+    @tailrec
     private def generateUID(): String =
         val uid = randomUUID().toString()
         /* For security we track all UIDs ever issued to avoid reissuing,

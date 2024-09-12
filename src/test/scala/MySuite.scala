@@ -1,211 +1,156 @@
-import munit.Assertions.*
+import munit.Assertions.fail
 import io.circe.generic.auto.*
 import io.circe.parser.*
-import sttp.client3.{basicRequest, SimpleHttpClient, UriContext}
-import sttp.client3.Response
+import sttp.client3.{basicRequest, Response, SimpleHttpClient, UriContext}
 import org.http4s.circe.*
 
-def getBody[W, T](response: Response[Either[W, T]]): T =
-    response.body match
-        case Left(err)   => fail(s"HTTP error: ${err.toString()}")
-        case Right(body) => body
-
-def assertResponseBodyIs[W, T](response: Response[Either[W, T]], target: T) =
-    response.body match
-        case Left(err)   => fail(s"HTTP error: ${err.toString()}")
-        case Right(body) => assertEquals(body, target)
-
 def toNativeUri(uri: org.http4s.Uri): sttp.model.Uri = uri"${uri.toString()}"
+
+extension [T](response: Response[Either[T, String]])
+    def getBodySafe(): String =
+        assert(response.isSuccess)
+        response.body.toOption.get
+
+    def getAPIToDoSafe(): APIToDo =
+        decode[APIToDo](response.getBodySafe()) match
+            case Left(err)   => fail(err.toString())
+            case Right(todo) => todo
+
+    def getAPIToDoSeqSafe(): Seq[APIToDo] =
+        decode[Seq[APIToDo]](response.getBodySafe()) match
+            case Left(err)   => fail(err.toString())
+            case Right(list) => list
 
 class MySuite extends munit.FunSuite:
     val client = SimpleHttpClient()
 
-    def deleteAndGetTest() =
-        val delResponse =
-            client.send(basicRequest.delete(uri"${Constants.root}"))
-        assert(delResponse.code.isSuccess)
-        val getResponse = client.send(basicRequest.get(uri"${Constants.root}"))
-        assertResponseBodyIs(getResponse, "[]")
-
     test("server is up"):
-        val response = client.send(basicRequest.get(uri"${Constants.root}"))
-        assert(response.isSuccess)
+        assert(client.send(basicRequest.get(uri"${Constants.root}")).isSuccess)
 
     test("redis is up"):
-        val response =
-            client.send(basicRequest.get(uri"${Constants.root}/ping"))
-        assertResponseBodyIs(response, "PONG")
+        assertEquals(
+            client
+                .send(basicRequest.get(uri"${Constants.root}/ping"))
+                .getBodySafe(),
+            "PONG")
+
+    def deleteAndGetTest() =
+        assert(
+            client.send(basicRequest.delete(uri"${Constants.root}")).isSuccess)
+
+        assertEquals(
+            client.send(basicRequest.get(uri"${Constants.root}")).getBodySafe(),
+            "[]")
 
     test("data cleared successfully"):
         deleteAndGetTest()
 
     test("adding a new todo works"):
-        val postResponse1Body = getBody(
-            client.send(
+        val todo = client
+            .send(
                 basicRequest
                     .post(uri"${Constants.root}")
-                    .body("{\"title\": \"Foo\"}")))
+                    .body("{\"title\": \"Foo\"}"))
+            .getAPIToDoSafe()
+        assertEquals(todo.title, "Foo")
+        assertEquals(todo.completed, false)
 
-        decode[APIToDo](postResponse1Body) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) =>
-                assertEquals(todo.title, "Foo")
-                assertEquals(todo.completed, false)
-        client.send(
-            basicRequest
-                .post(uri"${Constants.root}")
-                .body("{\"title\": \"Bar\"}"))
+        assert(
+            client
+                .send(
+                    basicRequest
+                        .post(uri"${Constants.root}")
+                        .body("{\"title\": \"Bar\"}"))
+                .isSuccess)
 
-        val getResponseBody =
-            getBody(client.send(basicRequest.get(uri"${Constants.root}")))
-        decode[List[ToDo]](getResponseBody) match
-            case Left(err) => fail(err.toString())
-            case Right(l)  =>
-                assertEquals(
-                    Set(
-                        (l(0).title, l(0).completed),
-                        (l(1).title, l(1).completed),
-                    ),
-                    Set(("Foo", false), ("Bar", false)))
+        val todos = client
+            .send(basicRequest.get(uri"${Constants.root}"))
+            .getAPIToDoSeqSafe()
+        assertEquals(
+            Set(
+                (todos(0).title, todos(0).completed),
+                (todos(1).title, todos(1).completed),
+            ),
+            Set(("Foo", false), ("Bar", false)))
 
     test("can navigate to a single todo"):
-        val getRootResponseBody =
-            getBody(client.send(basicRequest.get(uri"${Constants.root}")))
-        decode[List[APIToDo]](getRootResponseBody) match
-            case Left(outerErr) => fail(outerErr.toString())
-            case Right(l)       =>
-                l.foreach(toDoAtRoot =>
-                    val getToDoResponseBody =
-                        getBody(
-                            client.send(
-                                basicRequest.get(toNativeUri(toDoAtRoot.url))))
-                    decode[APIToDo](getToDoResponseBody) match
-                        case Left(innerErr)   => fail(innerErr.toString())
-                        case Right(toDoOnOwn) =>
-                            assertEquals(toDoAtRoot, toDoOnOwn),
-                )
+        val todos = client
+            .send(basicRequest.get(uri"${Constants.root}"))
+            .getAPIToDoSeqSafe()
+        todos.foreach(toDoAtRoot =>
+            val toDoAtOwn = client
+                .send(basicRequest.get(toNativeUri(toDoAtRoot.url)))
+                .getAPIToDoSafe()
+            assertEquals(toDoAtRoot, toDoAtOwn),
+        )
+
+    def patchTest(
+        postBody: String,
+        postAss: APIToDo => Unit,
+        patchBody: String,
+        patchAss: APIToDo => Unit,
+    ): Unit =
+        val todo = client
+            .send(basicRequest.post(uri"${Constants.root}").body(postBody))
+            .getAPIToDoSafe()
+        postAss(todo)
+        val url  = toNativeUri(todo.url)
+
+        val todo2 = client
+            .send(basicRequest.patch(url).body(patchBody))
+            .getAPIToDoSafe()
+        patchAss(todo2)
+
+        val todo3 = client.send(basicRequest.get(url)).getAPIToDoSafe()
+        assertEquals(todo2, todo3)
 
     test("can update title and completedness"):
-        val postResponse = getBody(
-            client.send(
-                basicRequest
-                    .post(uri"${Constants.root}")
-                    .body("{\"title\": \"Important\"}")))
-        val url          = decode[APIToDo](postResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) => toNativeUri(todo.url)
+        patchTest(
+            "{\"title\": \"Important\"}",
+            todo => assert(!todo.completed),
+            "{\"completed\": true, \"title\": \"Not important\"}",
+            todo2 =>
+                assertEquals(todo2.title, "Not important")
+                assert(todo2.completed),
+        )
 
-        val patchResponse = getBody(
-            client.send(basicRequest
-                .patch(url)
-                .body("{\"completed\": true, \"title\": \"Not important\"}")))
-        decode[APIToDo](patchResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) =>
-                assertEquals(todo.title, "Not important")
-                assert(todo.completed)
-
-        val getResponse = getBody(client.send(basicRequest.get(url)))
-        decode[APIToDo](getResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) =>
-                assertEquals(todo.title, "Not important")
-                assert(todo.completed)
-
-        val getRootResponseBody =
-            getBody(client.send(basicRequest.get(uri"${Constants.root}")))
-        decode[List[APIToDo]](getRootResponseBody) match
-            case Left(outerErr) => fail(outerErr.toString())
-            case Right(l)       =>
-                assert(
-                    l.map(t => (t.title, t.completed))
-                        .contains(("Not important", true)))
-
-    test("can update order"):
-        val postResponse = getBody(
-            client.send(
-                basicRequest
-                    .post(uri"${Constants.root}")
-                    .body("{\"title\": \"Bar\", \"order\": -10}")))
-        val todo         = decode[APIToDo](postResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) => assertEquals(todo.order, Some(-10))
+        val todos = client
+            .send(basicRequest.get(uri"${Constants.root}"))
+            .getAPIToDoSeqSafe()
+        assert(
+            todos
+                .map(t => (t.title, t.completed))
+                .contains(("Not important", true)))
 
     test("can update order from null"):
-        val postResponse = getBody(
-            client.send(
-                basicRequest
-                    .post(uri"${Constants.root}")
-                    .body("{\"title\": \"Foo\"}")))
-        val url          = decode[APIToDo](postResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) =>
-                assertEquals(todo.order, None)
-                toNativeUri(todo.url)
-
-        val patchResponse = getBody(
-            client.send(
-                basicRequest
-                    .patch(url)
-                    .body("{\"order\": 10}")))
-        decode[APIToDo](patchResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) =>
-                assertEquals(todo.order, Some(10))
-
-        val getResponse = getBody(client.send(basicRequest.get(url)))
-        decode[APIToDo](getResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) =>
-                assertEquals(todo.order, Some(10))
+        patchTest(
+            "{\"title\": \"Foo\"}",
+            todo => assertEquals(todo.order, None),
+            "{\"order\": 10}",
+            todo2 => assertEquals(todo2.order, Some(10)))
 
     test("can update order from value"):
-        val postResponse = getBody(
-            client.send(
-                basicRequest
-                    .post(uri"${Constants.root}")
-                    .body("{\"title\": \"Bar\", \"order\": 21}")))
-        val url          = decode[APIToDo](postResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) =>
-                assertEquals(todo.order, Some(21))
-                toNativeUri(todo.url)
-
-        val patchResponse = getBody(
-            client.send(
-                basicRequest
-                    .patch(url)
-                    .body("{\"order\": 0}")))
-        decode[APIToDo](patchResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) =>
-                assertEquals(todo.order, Some(0))
-
-        val getResponse = getBody(client.send(basicRequest.get(url)))
-        decode[APIToDo](getResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) =>
-                assertEquals(todo.order, Some(0))
+        patchTest(
+            "{\"title\": \"Bar\", \"order\": 21}",
+            todo => assertEquals(todo.order, Some(21)),
+            "{\"order\": 0}",
+            todo2 => assertEquals(todo2.order, Some(0)))
 
     test("can delete a todo"):
-        val postResponse = getBody(
-            client.send(
-                basicRequest
-                    .post(uri"${Constants.root}")
-                    .body("{\"title\": \"Useless\"}")))
-        val url          = decode[APIToDo](postResponse) match
-            case Left(err)   => fail(err.toString())
-            case Right(todo) => toNativeUri(todo.url)
+        val url = toNativeUri(
+            client
+                .send(
+                    basicRequest
+                        .post(uri"${Constants.root}")
+                        .body("{\"title\": \"Useless\"}"))
+                .getAPIToDoSafe()
+                .url)
 
-        val deleteResponse = client.send(basicRequest.delete(url))
-        assert(deleteResponse.isSuccess)
+        assert(client.send(basicRequest.delete(url)).isSuccess)
 
-        val getResponse = client.send(basicRequest.get(url))
-        assertEquals(getResponse.code.code, 404)
+        assertEquals(client.send(basicRequest.get(url)).code.code, 404)
 
-        val getResponseAtRoot =
-            client.send(basicRequest.get(uri"${Constants.root}"))
-        assert(getResponseAtRoot.isSuccess)
+        assert(client.send(basicRequest.get(uri"${Constants.root}")).isSuccess)
 
     test("delete all works"):
         deleteAndGetTest()
