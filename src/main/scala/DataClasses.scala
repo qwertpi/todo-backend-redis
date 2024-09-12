@@ -50,5 +50,5 @@ extension (redisToDo: RedisToDo)
             redisToDo.title,
             redisToDo.order.toIntOption,
             redisToDo.completed.toBoolean,
-            Uri.fromString(s"${Constants.root}/${redisToDo.uid}").right.get,
+            Uri.fromString(s"${Constants.root}/${redisToDo.uid}").toOption.get,
         )

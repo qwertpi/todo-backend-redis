@@ -58,3 +58,4 @@ class Logic(jedisPool: JedisPool, db: Int):
                 .map("todos:" + _)
                 .toSeq :+ "uids" :+ "next-uid"
         useJedis(jedis => jedis.del(to_delete*))
+        ()

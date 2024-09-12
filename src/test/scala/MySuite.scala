@@ -1,7 +1,6 @@
 import munit.Assertions.*
 import io.circe.generic.auto.*
 import io.circe.parser.*
-import io.circe.syntax.*
 import sttp.client3.{basicRequest, SimpleHttpClient, UriContext}
 import sttp.client3.Response
 import org.http4s.circe.*

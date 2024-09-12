@@ -1,6 +1,5 @@
 import cats.effect.IO
 import io.circe.generic.auto.*
-import io.circe.syntax.*
 import org.http4s.HttpRoutes
 import org.http4s.Status
 import org.http4s.circe.*

@@ -1,6 +1,16 @@
 name                 := "todo-backend-redis"
 scalaVersion         := "3.5.0"
 Compile / run / fork := true
+scalacOptions ++= Seq(
+    "-deprecation",
+    "-explain",
+    "-feature",
+    "-new-syntax",
+    "-unchecked",
+    "-Wsafe-init",
+    "-Wunused:all",
+    "-Wvalue-discard",
+)
 
 val http4sVersion  = "0.23.27"
 val jedisVersion   = "5.1.5"
