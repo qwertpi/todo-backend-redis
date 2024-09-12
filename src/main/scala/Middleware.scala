@@ -28,8 +28,13 @@ class Middleware(jedisPool: JedisPool, db: Int):
     @annotation.tailrec
     private def generateUID(): String =
         val uid = randomUUID().toString()
+        /* For security we track all UIDs ever issued to avoid reissuing,
+           this prevents accidental leaking of other user's data if a user
+           accidentally navigates back to a link to a todo they deleted */
         if useJedis(jedis => jedis.sadd("uids", uid)) != 1 then generateUID()
-        else uid
+        else
+            useJedis(jedis => jedis.sadd("activeUIDs", uid))
+            uid
 
     def addToDo(newTodo: NewToDo): HTTPResponse =
         val uid = generateUID()
@@ -40,7 +45,10 @@ class Middleware(jedisPool: JedisPool, db: Int):
         getToDo(uid)
 
     def delToDo(uid: String): HTTPResponse =
-        useJedis(jedis => jedis.del(s"todos:$uid"))
+        useJedis(jedis =>
+            jedis.del(s"todos:$uid")
+            jedis.srem("activeUIDs", uid),
+        )
         Ok()
 
     private def getToDoFromRedis(uid: String): Option[RedisToDo] =
@@ -61,14 +69,14 @@ class Middleware(jedisPool: JedisPool, db: Int):
 
     def getAllToDos(): HTTPResponse =
         Ok(
-            useJedis(jedis => jedis.smembers("uids")).asScala
+            useJedis(jedis => jedis.smembers("activeUIDs")).asScala
                 .map(getToDoFromRedis(_).get.toAPIToDo)
                 .asJson)
 
     def delAllToDos(): HTTPResponse =
         val to_delete: Seq[String] =
-            useJedis(jedis => jedis.smembers("uids")).asScala
+            useJedis(jedis => jedis.smembers("activeUIDs")).asScala
                 .map("todos:" + _)
-                .toSeq :+ "uids"
+                .toSeq :+ "activeUIDs"
         useJedis(jedis => jedis.del(to_delete*))
         Ok()
