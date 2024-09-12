@@ -4,6 +4,7 @@ import fs2.io.net.Network
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.Request
 import org.http4s.server.middleware.{CORS, ErrorAction}
+import redis.clients.jedis.JedisPool
 
 object Main extends IOApp:
     def logRequest(req: Request[IO]): IO[Unit]               =
@@ -17,9 +18,12 @@ object Main extends IOApp:
         logRequest(req) *> logErrorMessage(err)
 
     override def run(args: List[String]): IO[ExitCode] =
-        val db      = if args.contains("--test") then 15 else 0
-        val httpApp = CORS.policy.withAllowOriginAll(
-            ErrorAction.httpRoutes[IO](Routes.routes(db), logError).orNotFound)
+        val db        = if args.contains("--test") then 15 else 0
+        val jedisPool = JedisPool()
+        val httpApp   = CORS.policy.withAllowOriginAll(
+            ErrorAction
+                .httpRoutes[IO](Routes.routes(jedisPool, db), logError)
+                .orNotFound)
 
         val server = for {
             _ <-

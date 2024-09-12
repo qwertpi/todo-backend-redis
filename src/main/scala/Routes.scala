@@ -9,10 +9,11 @@ import org.http4s.dsl.io.*
 import org.http4s.headers.Location
 import org.http4s.implicits.uri
 import io.circe.Json
+import redis.clients.jedis.JedisPool
 
 object Routes:
-    def routes(db: Int) =
-        val logic = Logic(db)
+    def routes(jedisPool: JedisPool, db: Int) =
+        val logic = Logic(jedisPool, db)
         HttpRoutes.of[IO] {
             case DELETE -> Root                => Status.Ok(logic.delAllToDos())
             case request @ POST -> Root        =>
