@@ -43,7 +43,9 @@ class Middleware(jedisPool: JedisPool, db: Int):
             jedis.hset(
                 s"todos:$uid",
                 newTodo.toToDo(uid).toRedisToDo.toMap.asJava))
-        getToDo(uid)
+        getToDo(uid).map(response =>
+            if response.status.isSuccess then response.withStatus(Created)
+            else response)
 
     def delToDo(uid: String): HTTPResponse =
         useJedis(jedis =>
@@ -80,4 +82,4 @@ class Middleware(jedisPool: JedisPool, db: Int):
                 .map("todos:" + _)
                 .toSeq :+ "activeUIDs"
         useJedis(jedis => jedis.del(to_delete*))
-        Ok()
+        NoContent()
