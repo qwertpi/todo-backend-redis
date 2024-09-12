@@ -187,8 +187,24 @@ class MySuite extends munit.FunSuite:
             case Right(todo) =>
                 assertEquals(todo.order, Some(0))
 
+    test("can delete a todo"):
+        val postResponse = getBody(
+            client.send(
+                basicRequest
+                    .post(uri"${Constants.root}")
+                    .body("{\"title\": \"Useless\"}")))
+        val url          = decode[APIToDo](postResponse) match
+            case Left(err)   => fail(err.toString())
+            case Right(todo) => toNativeUri(todo.url)
+
+        val deleteResponse = client.send(basicRequest.delete(url))
+        assert(deleteResponse.isSuccess)
+
+        val getResponse = client.send(basicRequest.get(url))
+        assertEquals(getResponse.code.code, 404)
+
     test("delete all works"):
         deleteAndGetTest()
 
-    test("double delete works"):
+    test("double delete all works"):
         deleteAndGetTest()
