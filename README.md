@@ -1,5 +1,5 @@
 # todo-backend-redis
-My attempt to complete the [Todo-Backend challenge](https://todobackend.com/) with Redis + Scala
+My implementation of the [Todo-Backend specification](https://todobackend.com/) with Redis as the data store and Scala as the web server (http4s) and test suite (MUnit)
 
 ## Copyright
 Copyright © 2024  Rory Sharp All rights reserved.
