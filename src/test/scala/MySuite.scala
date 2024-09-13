@@ -152,6 +152,28 @@ class MySuite extends munit.FunSuite:
 
         assert(client.send(basicRequest.get(uri"${Constants.root}")).isSuccess)
 
+    test("PATCH or DELETE a non-existent todo gives 404"):
+        val url = toNativeUri(
+            client
+                .send(
+                    basicRequest
+                        .post(uri"${Constants.root}")
+                        .body("{\"title\": \"Useless\"}"))
+                .getAPIToDoSafe()
+                .url)
+
+        assert(client.send(basicRequest.delete(url)).isSuccess)
+
+        assertEquals(
+            client
+                .send(
+                    basicRequest.patch(url).body("{\"title\": \"Pointless\"}"))
+                .code
+                .code,
+            404)
+
+        assertEquals(client.send(basicRequest.delete(url)).code.code, 404)
+
     test("delete all works"):
         deleteAndGetTest()
 
