@@ -48,11 +48,11 @@ class Middleware(jedisPool: JedisPool, db: Int):
             else response)
 
     def delToDo(uid: String): HTTPResponse =
-        useJedis(jedis =>
-            jedis.del(s"todos:$uid")
-            jedis.srem("activeUIDs", uid),
-        )
-        Ok()
+        if useJedis(jedis =>
+                jedis.del(s"todos:$uid")
+                jedis.srem("activeUIDs", uid),
+            ) == 0L then return NotFound()
+        NoContent()
 
     private def getToDoFromRedis(uid: String): Option[RedisToDo] =
         val map = useJedis(jedis => jedis.hgetAll(s"todos:$uid")).asScala.toMap
@@ -64,6 +64,8 @@ class Middleware(jedisPool: JedisPool, db: Int):
         case Some(t) => Ok(t.toAPIToDo.asJson)
 
     def updateToDo(uid: String, patch: Map[String, Json]): HTTPResponse =
+        if !useJedis(jedis => jedis.sismember("activeUIDs", uid)) then
+            return NotFound()
         useJedis(jedis =>
             jedis.hset(
                 s"todos:$uid",
