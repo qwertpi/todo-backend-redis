@@ -22,12 +22,17 @@ extension [T](response: Response[Either[T, String]])
             case Right(list) => list
 
 class MySuite extends munit.FunSuite:
+    val serverThread = Thread(() => Main.main(Array("--test")))
+    serverThread.start()
+    // Sleep this thread to give the server a chance to start
+    Thread.sleep(2000)
+
     val client = SimpleHttpClient()
 
     test("server is up"):
         assert(client.send(basicRequest.get(uri"${Constants.root}")).isSuccess)
 
-    test("redis is up"):
+    test("server is connected to redis"):
         assertEquals(
             client
                 .send(basicRequest.get(uri"${Constants.root}/ping"))
@@ -179,3 +184,5 @@ class MySuite extends munit.FunSuite:
 
     test("double delete all works"):
         deleteAndGetTest()
+
+    override def afterAll(): Unit = serverThread.interrupt()

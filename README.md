@@ -21,5 +21,5 @@ For a (non-legally binding) summary of the license see https://tldrlegal.com/lic
 4. `redis-cli CONFIG REWRITE`
 
 ## Usage
-* To run tests (start server in a seperate tab with `sbt "run --test"`): `sbt test`
+* To run tests: `sbt test`
 * To run server: `sbt run`
